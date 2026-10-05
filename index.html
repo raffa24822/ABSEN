@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Kalender Absensi">
+    <link rel="manifest" href="./manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+    <link rel="apple-touch-icon" href="./icons/icon-192.png">
+    <title>Kalender Absensi Harian & Cek Kesehatan Server Sync (2026)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Outfit', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.05);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.5);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 116, 139, 0.8);
+        }
+
+        /* Dynamic Theme Variables */
+        body.theme-light {
+            --bg-main: #f8fafc;
+            --bg-card: #ffffff;
+            --border-card: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --header-bg: #ffffff;
+        }
+
+        body.theme-midnight {
+            --bg-main: #0b0f19;
+            --bg-card: #151c2c;
+            --border-card: #2a364f;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --header-bg: #111827;
+        }
+
+        body.theme-pastel {
+            --bg-main: #faf5f5;
+            --bg-card: #ffffff;
+            --border-card: #f3e8e8;
+            --text-main: #332929;
+            --text-muted: #8c7a7a;
+            --header-bg: #fffbfb;
+        }
+
+        body.theme-emerald {
+            --bg-main: #051c14;
+            --bg-card: #0c2b20;
+            --border-card: #164031;
+            --text-main: #f0fdf4;
+            --text-muted: #86efac;
+            --header-bg: #07241a;
+        }
+
+        body.theme-ocean { --bg-main:#f0f9ff; --bg-card:#ffffff; --border-card:#bae6fd; --text-main:#0c4a6e; --text-muted:#0369a1; --header-bg:#f8fdff; }
+        body.theme-sunset { --bg-main:#fff7ed; --bg-card:#ffffff; --border-card:#fed7aa; --text-main:#431407; --text-muted:#9a3412; --header-bg:#fffaf5; }
+        body.theme-rose { --bg-main:#fff1f2; --bg-card:#ffffff; --border-card:#fecdd3; --text-main:#4c0519; --text-muted:#9f1239; --header-bg:#fff7f8; }
+
+        .themed-body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+        }
+
+        .themed-card {
+            background-color: var(--bg-card);
+            border-color: var(--border-card);
+        }
+
+        .themed-header {
+            background-color: var(--header-bg);
+            border-color: var(--border-card);
+        }
+    </style>
+</head>
+<body class="themed-body theme-light font-sans min-h-screen flex flex-col antialiased transition-colors duration-300">
+
+    <!-- Header Navigation -->
+    <header class="themed-header border-b sticky top-0 z-30 shadow-sm transition-colors duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            
+            <!-- Logo & Brand -->
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-200 dark:shadow-none">
+                    <i class="fa-solid fa-cloud-arrow-up text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold font-heading leading-tight flex items-center gap-2">
+                        <span>Absensi & Cek Kesehatan</span>
+                    </h1>
+                    <p class="text-xs opacity-75 font-medium">5 Okt 2026 — 31 Des 2026</p>
+                </div>
+            </div>
+
+            <!-- Header Action Controls -->
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                
+                <!-- Cloud Sync Status Badge -->
+                <div id="cloudStatusBadge" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-semibold">
+                    <i id="cloudStatusIcon" class="fa-solid fa-rotate spin text-[11px]"></i>
+                    <span id="cloudStatusText">Menghubungkan Server...</span>
+                </div>
+
+                <!-- Theme Switcher Dropdown Button -->
+                <div class="relative">
+                    <button onclick="toggleThemeDropdown()" class="p-2 sm:px-3 sm:py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 text-xs font-semibold flex items-center gap-2 transition-all">
+                        <i class="fa-solid fa-palette text-indigo-500"></i>
+                        <span class="hidden sm:inline" id="currentThemeLabel">Clean Minimal</span>
+                        <i class="fa-solid fa-chevron-down text-[10px] opacity-60"></i>
+                    </button>
+
+                    <!-- Theme Menu -->
+                    <div id="themeMenu" class="hidden absolute right-0 mt-2 w-48 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl py-2 z-50 text-xs font-semibold space-y-1">
+                        <button onclick="changeTheme('theme-light', 'Clean Minimal')" class="w-full px-4 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-200">
+                            <span class="w-3 h-3 rounded-full bg-indigo-500"></span> Clean Minimal
+                        </button>
+                        <button onclick="changeTheme('theme-midnight', 'Cyber Midnight')" class="w-full px-4 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-200">
+                            <span class="w-3 h-3 rounded-full bg-slate-900 border border-slate-700"></span> Cyber Midnight
+                        </button>
+                        <button onclick="changeTheme('theme-pastel', 'Pastel Korean')" class="w-full px-4 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-200">
+                            <span class="w-3 h-3 rounded-full bg-pink-400"></span> Pastel Korean
+                        </button>
+                        <button onclick="changeTheme('theme-emerald', 'Emerald Forest')" class="w-full px-4 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-200"><span class="w-3 h-3 rounded-full bg-emerald-600"></span> Emerald Forest</button>
+                        <button onclick="changeTheme('theme-ocean', 'Ocean Breeze')" class="w-full px-4 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-200"><span class="w-3 h-3 rounded-full bg-sky-500"></span> Ocean Breeze</button>
+                        <button onclick="changeTheme('theme-sunset', 'Sunset Warm')" class="w-full px-4 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-200"><span class="w-3 h-3 rounded-full bg-orange-500"></span> Sunset Warm</button>
+                        <button onclick="changeTheme('theme-rose', 'Rose Soft')" class="w-full px-4 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-200"><span class="w-3 h-3 rounded-full bg-rose-500"></span> Rose Soft</button>
+                    </div>
+                </div>
+
+                <!-- Notification / Reminder Button -->
+                <button onclick="openNotificationSettings()" title="Pengaturan pengingat absen" class="p-2 sm:px-3 sm:py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 text-xs font-semibold flex items-center gap-2 transition-all"><i id="notificationBell" class="fa-regular fa-bell text-indigo-500"></i><span class="hidden sm:inline">Pengingat</span></button>
+
+                <!-- Profile Quick Button -->
+                <button onclick="openProfileModal()" class="flex items-center gap-2 p-1 sm:pr-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 transition-all">
+                    <img id="navProfileAvatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=User" alt="Avatar" class="w-7 h-7 rounded-lg bg-indigo-100 border border-indigo-200">
+                    <span id="navProfileName" class="text-xs font-bold hidden sm:inline truncate max-w-[100px]">Pengguna</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Dynamic Greeting & Quick Attendance Banner -->
+        <div id="greetingBanner" class="bg-gradient-to-r from-indigo-900 via-indigo-800 to-slate-900 text-white rounded-3xl p-6 shadow-2xl relative overflow-hidden transition-all">
+            <div class="absolute -right-12 -bottom-12 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+                <div class="space-y-2">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-xs font-semibold text-indigo-200 border border-white/10">
+                        <i id="greetingIcon" class="fa-solid fa-sun text-amber-400"></i>
+                        <span id="greetingText">Selamat Pagi!</span>
+                    </div>
+
+                    <h2 class="text-2xl sm:text-3xl font-bold font-heading tracking-tight">
+                        Halo, <span id="userDisplayName" class="text-indigo-300">Teman</span>! 👋
+                    </h2>
+
+                    <p id="greetingQuote" class="text-xs sm:text-sm text-slate-300 italic max-w-xl">
+                        "Semua data absen Anda otomatis tersimpan aman di server cloud."
+                    </p>
+
+                    <div class="pt-2 text-xs font-medium text-indigo-200 flex items-center gap-2 flex-wrap">
+                        <i class="fa-regular fa-calendar-check"></i>
+                        <span id="todayFormatted">Senin, 5 Oktober 2026</span>
+                        <span class="mx-1">•</span>
+                        <span id="todayStatusSubtitle" class="font-bold text-amber-400">Belum Absen</span>
+                    </div>
+                </div>
+
+                <!-- Primary Action Button -->
+                <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+                    <button id="btnAbsenNow" onclick="handleAbsenClick()" class="px-6 py-4 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold rounded-2xl shadow-lg shadow-indigo-950/50 transition-all flex items-center justify-center gap-3 cursor-pointer">
+                        <i class="fa-solid fa-fingerprint text-2xl"></i>
+                        <div class="text-left">
+                            <div class="text-[10px] font-normal opacity-80 uppercase tracking-wider">Aksi Hari Ini</div>
+                            <div id="btnAbsenText" class="text-sm font-bold">Absen Sekarang</div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Auto Preset Quick Bar -->
+        <div class="themed-card rounded-2xl p-4 sm:p-5 border shadow-sm flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 transition-colors">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center text-lg shrink-0">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 class="font-bold text-sm sm:text-base">Tetapkan Status Default (Auto-Preset)</h3>
+                        <span class="text-[10px] bg-indigo-500/10 text-indigo-500 font-bold px-2 py-0.5 rounded-full">Instan</span>
+                    </div>
+                    <p class="text-xs opacity-75">Aktifkan agar mencatat absen langsung dengan 1 klik tanpa pop-up dialog (tersimpan ke server).</p>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full lg:w-auto bg-slate-500/5 p-2 rounded-xl border border-slate-500/10">
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="presetToggle" onchange="togglePresetMode()" class="sr-only peer">
+                    <div class="w-11 h-6 bg-slate-300 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                </label>
+
+                <select id="presetStatus" onchange="savePresetConfig()" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg px-2.5 py-1.5 focus:outline-none">
+                    <option value="MASUK">Status: Masuk</option>
+                    <option value="LIBUR">Status: Libur</option>
+                    <option value="IZIN">Status: Izin</option>
+                    <option value="SAKIT">Status: Sakit</option>
+                    <option value="SEHAT">Status: Sehat</option>
+                </select>
+
+                <select id="presetHealth" onchange="savePresetConfig()" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg px-2.5 py-1.5 focus:outline-none">
+                    <option value="Sehat Fit">Kesehatan: Sehat Fit</option>
+                    <option value="Kurang Fit">Kesehatan: Kurang Fit</option>
+                    <option value="Demam / Flu">Kesehatan: Demam / Flu</option>
+                    <option value="Pemeriksaan Rutin">Kesehatan: Pemeriksaan Rutin</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Attendance Stats Overview -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div class="themed-card rounded-2xl p-4 border shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between text-emerald-500">
+                    <span class="text-xs font-bold uppercase tracking-wider">Masuk</span>
+                    <i class="fa-solid fa-briefcase"></i>
+                </div>
+                <h3 id="statMasuk" class="text-2xl font-bold font-heading mt-2">0</h3>
+            </div>
+
+            <div class="themed-card rounded-2xl p-4 border shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between text-sky-500">
+                    <span class="text-xs font-bold uppercase tracking-wider">Libur</span>
+                    <i class="fa-solid fa-mug-hot"></i>
+                </div>
+                <h3 id="statLibur" class="text-2xl font-bold font-heading mt-2">0</h3>
+            </div>
+
+            <div class="themed-card rounded-2xl p-4 border shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between text-rose-500">
+                    <span class="text-xs font-bold uppercase tracking-wider">Sakit</span>
+                    <i class="fa-solid fa-bed"></i>
+                </div>
+                <h3 id="statSakit" class="text-2xl font-bold font-heading mt-2">0</h3>
+            </div>
+
+            <div class="themed-card rounded-2xl p-4 border shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between text-amber-500">
+                    <span class="text-xs font-bold uppercase tracking-wider">Izin</span>
+                    <i class="fa-solid fa-envelope-open-text"></i>
+                </div>
+                <h3 id="statIzin" class="text-2xl font-bold font-heading mt-2">0</h3>
+            </div>
+
+            <div class="themed-card rounded-2xl p-4 border shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between text-teal-500">
+                    <span class="text-xs font-bold uppercase tracking-wider">Sehat</span>
+                    <i class="fa-solid fa-heart-pulse"></i>
+                </div>
+                <h3 id="statSehat" class="text-2xl font-bold font-heading mt-2">0</h3>
+            </div>
+
+            <div class="themed-card rounded-2xl p-4 border shadow-sm flex flex-col justify-between bg-slate-500/5">
+                <div class="flex items-center justify-between opacity-60">
+                    <span class="text-xs font-bold uppercase tracking-wider">Belum</span>
+                    <i class="fa-regular fa-circle"></i>
+                </div>
+                <h3 id="statBelum" class="text-2xl font-bold font-heading opacity-75 mt-2">0</h3>
+            </div>
+        </div>
+
+        <!-- Attendance Analytics -->
+        <div class="themed-card rounded-3xl border shadow-sm overflow-hidden transition-colors">
+            <div class="p-4 sm:p-5 border-b border-slate-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div><h3 class="font-bold font-heading flex items-center gap-2"><i class="fa-solid fa-chart-line text-indigo-500"></i> Diagram Kehadiran</h3><p class="text-xs opacity-65 mt-1">Ringkasan kehadiran dari data absen yang tersimpan.</p></div>
+                <select id="chartType" onchange="renderAttendanceChart()" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs rounded-xl px-3 py-2 font-semibold"><option value="line">Diagram Garis</option><option value="bar">Diagram Batang</option></select>
+            </div>
+            <div class="p-4 sm:p-6"><div class="relative h-64 sm:h-72 w-full"><canvas id="attendanceChart" class="w-full h-full"></canvas></div><div id="chartSummary" class="mt-3 text-xs opacity-70 text-center"></div></div>
+        </div>
+
+        <!-- Calendar Container Card -->
+        <div class="themed-card rounded-3xl border shadow-sm overflow-hidden transition-colors">
+            
+            <!-- Controls & Filters Bar -->
+            <div class="p-4 sm:p-5 border-b border-slate-500/10 bg-slate-500/5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                
+                <!-- Month Filter Tabs -->
+                <div class="flex items-center space-x-1 bg-slate-500/10 p-1 rounded-xl overflow-x-auto text-xs font-semibold shrink-0">
+                    <button onclick="setMonthFilter('ALL')" id="tabMonthAll" class="px-3.5 py-2 rounded-lg bg-indigo-600 text-white shadow-sm transition-all">Semua Bulan</button>
+                    <button onclick="setMonthFilter(9)" id="tabMonth9" class="px-3.5 py-2 rounded-lg opacity-80 hover:opacity-100 transition-all">Oktober 2026</button>
+                    <button onclick="setMonthFilter(10)" id="tabMonth10" class="px-3.5 py-2 rounded-lg opacity-80 hover:opacity-100 transition-all">November 2026</button>
+                    <button onclick="setMonthFilter(11)" id="tabMonth11" class="px-3.5 py-2 rounded-lg opacity-80 hover:opacity-100 transition-all">Desember 2026</button>
+                </div>
+
+                <!-- Status Filter & Reset -->
+                <div class="flex items-center justify-between md:justify-end gap-3 w-full md:w-auto">
+                    <select id="statusFilter" onchange="renderCalendar()" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm rounded-xl px-3 py-2 font-medium focus:outline-none shadow-sm cursor-pointer">
+                        <option value="ALL">Semua Status Absen</option>
+                        <option value="MASUK">Masuk</option>
+                        <option value="LIBUR">Libur</option>
+                        <option value="SAKIT">Sakit</option>
+                        <option value="IZIN">Izin</option>
+                        <option value="SEHAT">Sehat</option>
+                        <option value="BELUM">Belum Absen</option>
+                    </select>
+
+                    <button onclick="confirmResetModal()" class="px-3 py-2 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shrink-0">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        <span class="hidden sm:inline">Reset Server Data</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Calendar Days Section -->
+            <div class="p-4 sm:p-6">
+                <!-- Badges Legend -->
+                <div class="flex flex-wrap items-center gap-4 text-xs font-medium opacity-80 mb-5 pb-3 border-b border-slate-500/10">
+                    <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Masuk</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span> Libur</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Sakit</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Izin</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-teal-500"></span> Sehat</span>
+                    <span class="inline-flex items-center gap-1.5 text-indigo-500"><i class="fa-solid fa-cloud-check text-xs"></i> Tersimpan di Server Cloud</span>
+                </div>
+
+                <!-- Dynamic Grid -->
+                <div id="calendarGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-3">
+                    <!-- Days dynamically rendered -->
+                </div>
+
+                <div id="emptyState" class="hidden py-12 text-center opacity-60">
+                    <i class="fa-regular fa-folder-open text-4xl mb-3"></i>
+                    <p class="text-sm font-medium">Tidak ada data absen yang sesuai dengan filter.</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Profile Edit Modal -->
+    <div id="profileModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5 border border-slate-200 dark:border-slate-800">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <h3 class="text-lg font-bold font-heading">Profil Pengguna (Sync Cloud)</h3>
+                <button onclick="closeProfileModal()" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <!-- Avatar Chooser -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Pilih Style Avatar</label>
+                    <div class="flex items-center gap-3 overflow-x-auto pb-2">
+                        <button onclick="selectAvatar('User')" class="avatar-opt border-2 border-indigo-600 p-1 rounded-xl shrink-0">
+                            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=User" class="w-10 h-10 rounded-lg">
+                        </button>
+                        <button onclick="selectAvatar('Felix')" class="avatar-opt border-2 border-transparent p-1 rounded-xl shrink-0">
+                            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Felix" class="w-10 h-10 rounded-lg">
+                        </button>
+                        <button onclick="selectAvatar('Aneka')" class="avatar-opt border-2 border-transparent p-1 rounded-xl shrink-0">
+                            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Aneka" class="w-10 h-10 rounded-lg">
+                        </button>
+                        <button onclick="selectAvatar('Pepper')" class="avatar-opt border-2 border-transparent p-1 rounded-xl shrink-0">
+                            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Pepper" class="w-10 h-10 rounded-lg">
+                        </button>
+                        <button onclick="selectAvatar('Shadow')" class="avatar-opt border-2 border-transparent p-1 rounded-xl shrink-0"><img src="https://api.dicebear.com/7.x/bottts/svg?seed=Shadow" class="w-10 h-10 rounded-lg"></button>
+                        <button onclick="selectAvatar('Nova')" class="avatar-opt border-2 border-transparent p-1 rounded-xl shrink-0"><img src="https://api.dicebear.com/7.x/bottts/svg?seed=Nova" class="w-10 h-10 rounded-lg"></button>
+                        <button onclick="selectAvatar('Milo')" class="avatar-opt border-2 border-transparent p-1 rounded-xl shrink-0"><img src="https://api.dicebear.com/7.x/bottts/svg?seed=Milo" class="w-10 h-10 rounded-lg"></button>
+                        <button onclick="selectAvatar('Luna')" class="avatar-opt border-2 border-transparent p-1 rounded-xl shrink-0"><img src="https://api.dicebear.com/7.x/bottts/svg?seed=Luna" class="w-10 h-10 rounded-lg"></button>
+                        <button onclick="selectAvatar('Pixel')" class="avatar-opt border-2 border-transparent p-1 rounded-xl shrink-0"><img src="https://api.dicebear.com/7.x/bottts/svg?seed=Pixel" class="w-10 h-10 rounded-lg"></button>
+                    </div>
+                </div>
+
+                <!-- Inputs -->
+                <div>
+                    <label class="block text-xs font-semibold mb-1">Nama Lengkap / Panggilan:</label>
+                    <input type="text" id="inputProfileName" class="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs rounded-xl p-3 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold mb-1">Kelas / Instansi / Jabatan:</label>
+                    <input type="text" id="inputProfileRole" placeholder="Contoh: Siswa XII IPA 1 / Karyawan" class="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs rounded-xl p-3 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold mb-1">Bio / Status Singkat:</label>
+                    <input type="text" id="inputProfileBio" placeholder="Contoh: Tetap semangat setiap hari!" class="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs rounded-xl p-3 font-normal focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                <button onclick="closeProfileModal()" class="flex-1 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-xl text-xs font-semibold transition-colors">
+                    Batal
+                </button>
+                <button onclick="saveProfileData()" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-indigo-200 transition-colors">
+                    Simpan ke Server
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Absen Choice Modal -->
+    <div id="absenModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5 border border-slate-200 dark:border-slate-800">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div>
+                    <h3 class="text-lg font-bold font-heading">Form Absen & Cek Kesehatan</h3>
+                    <p id="modalDateTitle" class="text-xs opacity-75">Senin, 5 Oktober 2026</p>
+                </div>
+                <button onclick="closeAbsenModal()" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Status Radios -->
+            <div class="space-y-2">
+                <label class="text-xs font-bold uppercase tracking-wider opacity-75">1. Pilih Status Absen</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <label class="cursor-pointer border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-500/10 transition-all">
+                        <input type="radio" name="modalStatus" value="MASUK" class="text-emerald-600 focus:ring-emerald-500" checked>
+                        <div class="text-xs font-semibold flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Masuk
+                        </div>
+                    </label>
+
+                    <label class="cursor-pointer border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 has-[:checked]:border-sky-500 has-[:checked]:bg-sky-500/10 transition-all">
+                        <input type="radio" name="modalStatus" value="LIBUR" class="text-sky-600 focus:ring-sky-500">
+                        <div class="text-xs font-semibold flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-sky-500"></span> Libur
+                        </div>
+                    </label>
+
+                    <label class="cursor-pointer border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 has-[:checked]:border-rose-500 has-[:checked]:bg-rose-500/10 transition-all">
+                        <input type="radio" name="modalStatus" value="SAKIT" class="text-rose-600 focus:ring-rose-500">
+                        <div class="text-xs font-semibold flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-rose-500"></span> Sakit
+                        </div>
+                    </label>
+
+                    <label class="cursor-pointer border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 has-[:checked]:border-amber-500 has-[:checked]:bg-amber-500/10 transition-all">
+                        <input type="radio" name="modalStatus" value="IZIN" class="text-amber-600 focus:ring-amber-500">
+                        <div class="text-xs font-semibold flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-amber-500"></span> Izin
+                        </div>
+                    </label>
+
+                    <label class="cursor-pointer border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 col-span-2 has-[:checked]:border-teal-500 has-[:checked]:bg-teal-500/10 transition-all">
+                        <input type="radio" name="modalStatus" value="SEHAT" class="text-teal-600 focus:ring-teal-500">
+                        <div class="text-xs font-semibold flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-teal-500"></span> Sehat (Pemeriksaan Sehat)
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Health Section -->
+            <div class="space-y-3 pt-2 border-t border-slate-200 dark:border-slate-800">
+                <label class="text-xs font-bold uppercase tracking-wider opacity-75 flex items-center justify-between">
+                    <span>2. Cek Kesehatan Harian</span>
+                    <i class="fa-solid fa-stethoscope text-teal-500"></i>
+                </label>
+
+                <div>
+                    <label class="block text-xs opacity-75 mb-1">Kondisi Tubuh:</label>
+                    <select id="modalHealthCondition" class="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs rounded-xl p-2.5 font-semibold focus:outline-none">
+                        <option value="Sehat Fit">Sehat Fit / Prima</option>
+                        <option value="Kurang Fit">Kurang Fit / Lelah</option>
+                        <option value="Demam / Flu">Demam / Batuk / Flu</option>
+                        <option value="Pemeriksaan Rutin">Pemeriksaan Dokter / Rutin</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs opacity-75 mb-1">Catatan Kesehatan / Keterangan:</label>
+                    <textarea id="modalHealthNotes" rows="2" placeholder="Contoh: Sudah minum obat, stamina fit..." class="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs rounded-xl p-2.5 font-normal focus:outline-none resize-none"></textarea>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 pt-2">
+                <button onclick="closeAbsenModal()" class="flex-1 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-xl text-xs font-semibold transition-colors">
+                    Batal
+                </button>
+                <button onclick="submitModalAbsen()" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-indigo-200 transition-colors flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <span>Simpan ke Server</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reset Confirmation Modal -->
+    <div id="resetModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 border border-slate-200 dark:border-slate-800">
+            <div class="w-12 h-12 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center text-xl mx-auto">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div class="text-center space-y-1">
+                <h3 class="text-lg font-bold font-heading">Reset Server Data?</h3>
+                <p class="text-xs opacity-75">Semua riwayat absensi dari 5 Okt - 31 Des 2026 di server akan dihapus permanen.</p>
+            </div>
+            <div class="flex items-center gap-2 pt-2">
+                <button onclick="closeResetModal()" class="flex-1 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-xl text-xs font-semibold transition-colors">
+                    Batal
+                </button>
+                <button onclick="executeResetData()" class="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-rose-200 transition-colors">
+                    Ya, Reset Server
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification / Reminder Settings -->
+    <div id="notificationModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden"><div class="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5 border border-slate-200 dark:border-slate-800">
+        <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3"><div><h3 class="text-lg font-bold font-heading">Pengingat Absen</h3><p class="text-xs opacity-70">Pengaturan disimpan bersama data akun.</p></div><button onclick="closeNotificationSettings()" class="text-slate-400 p-1"><i class="fa-solid fa-xmark text-lg"></i></button></div>
+        <label class="flex items-center justify-between gap-3 p-3 rounded-2xl bg-slate-500/5 border border-slate-500/10 cursor-pointer"><div><div class="text-sm font-bold">Aktifkan pengingat</div><div class="text-[11px] opacity-65">Mengingatkan jika hari ini belum absen.</div></div><input id="reminderEnabled" type="checkbox" class="w-5 h-5 accent-indigo-600"></label>
+        <div><label class="block text-xs font-semibold mb-1">Jam pengingat</label><input id="reminderTime" type="time" value="07:00" class="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs rounded-xl p-3 font-semibold"></div>
+        <div class="rounded-2xl bg-indigo-500/5 border border-indigo-500/10 p-3 text-[11px] leading-relaxed opacity-80"><i class="fa-solid fa-shield-halved text-indigo-500 mr-1"></i>Notifikasi meminta izin browser. Data absen disimpan pada dokumen pengguna terautentikasi dan tidak dibuat publik oleh halaman ini.</div>
+        <div class="flex gap-2"><button onclick="requestNotificationPermission()" class="flex-1 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-xl text-xs font-semibold">Izinkan</button><button onclick="saveNotificationSettings()" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold">Simpan</button></div>
+    </div></div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 ease-out pointer-events-none">
+        <div id="toastContent" class="bg-slate-900 text-white dark:bg-white dark:text-slate-900 px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 text-sm font-medium border border-slate-700 dark:border-slate-200">
+            <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+            <span id="toastMessage">Pesan Notifikasi</span>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, setPersistence, browserLocalPersistence, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Firebase state & configs
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-absensi-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "demo-key",
+            authDomain: "demo-app.firebaseapp.com",
+            projectId: "demo-app",
+            storageBucket: "demo-app.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:demo"
+        };
+
+        let app, auth, db;
+        let currentUser = null;
+        let unsubscribeDocListener = null;
+
+        const START_DATE_STR = "2026-10-05";
+        const END_DATE_STR = "2026-12-31";
+
+        // Main State
+        let attendanceData = {};
+        let presetConfig = { enabled: false, status: "MASUK", health: "Sehat Fit" };
+        let userProfile = { name: "Pengguna", role: "Siswa / Karyawan", bio: "Tetap semangat setiap hari!", seed: "User" };
+        let currentThemeClass = "theme-light";
+        let currentThemeName = "Clean Minimal";
+        let reminderConfig = { enabled: true, time: "07:00" };
+        let notificationTimer = null;
+
+        let datesList = [];
+        let selectedMonth = 'ALL';
+        let simulatedTodayStr = "2026-10-05";
+
+        const dayNamesIndo = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+        const monthNamesIndo = [
+            "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+            "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+        ];
+
+        // Make helper functions globally accessible to standard HTML onclick listeners
+        window.toggleThemeDropdown = toggleThemeDropdown;
+        window.changeTheme = changeTheme;
+        window.openProfileModal = openProfileModal;
+        window.closeProfileModal = closeProfileModal;
+        window.selectAvatar = selectAvatar;
+        window.saveProfileData = saveProfileData;
+        window.togglePresetMode = togglePresetMode;
+        window.savePresetConfig = savePresetConfig;
+        window.handleAbsenClick = handleAbsenClick;
+        window.openAbsenModal = openAbsenModal;
+        window.closeAbsenModal = closeAbsenModal;
+        window.submitModalAbsen = submitModalAbsen;
+        window.setMonthFilter = setMonthFilter;
+        window.renderCalendar = renderCalendar;
+        window.confirmResetModal = confirmResetModal;
+        window.closeResetModal = closeResetModal;
+        window.executeResetData = executeResetData;
+        window.openNotificationSettings = openNotificationSettings;
+        window.closeNotificationSettings = closeNotificationSettings;
+        window.requestNotificationPermission = requestNotificationPermission;
+        window.saveNotificationSettings = saveNotificationSettings;
+        window.renderAttendanceChart = renderAttendanceChart;
+
+        // Initialize Firebase Authentication & Database Connection
+        async function initFirebase() {
+            updateCloudStatus("syncing", "Menghubungkan Server...");
+            try {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                await setPersistence(auth, browserLocalPersistence);
+
+                // Authenticate. Browser persistence keeps the same UID when the HTML file is removed/re-opened.
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        currentUser = user;
+                        listenToCloudData();
+                    }
+                });
+            } catch (err) {
+                console.error("Firebase Auth Error:", err);
+                updateCloudStatus("error", "Server Off-line (Local Mode)");
+            }
+        }
+
+        // Realtime Firestore Listener
+        function listenToCloudData() {
+            if (!currentUser) return;
+
+            // MANDATORY RULE: /artifacts/{appId}/users/{userId}/data/user_document
+            const userDocRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'settings', 'user_data');
+
+            updateCloudStatus("syncing", "Menyinkronkan Server...");
+
+            unsubscribeDocListener = onSnapshot(userDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    attendanceData = data.attendance || {};
+                    presetConfig = data.presetConfig || presetConfig;
+                    userProfile = data.userProfile || userProfile;
+                    currentThemeClass = data.themeClass || currentThemeClass;
+                    currentThemeName = data.themeName || currentThemeName;
+                    reminderConfig = data.reminderConfig || reminderConfig;
+
+                    applyTheme(currentThemeClass, currentThemeName);
+                    updateGreetingAndProfileUI();
+                    syncPresetUI();
+                    updateTodayHeader();
+                    renderCalendar();
+                    updateStatistics();
+                    syncNotificationUI();
+                    renderAttendanceChart();
+                    scheduleReminderCheck();
+
+                    updateCloudStatus("online", "Server Terhubung");
+                } else {
+                    // Document doesn't exist yet, save current initial state
+                    saveDataToCloudServer();
+                }
+            }, (error) => {
+                console.error("Firestore sync error:", error);
+                updateCloudStatus("error", "Gagal Sync Server");
+            });
+        }
+
+        // Save All State to Cloud Server
+        async function saveDataToCloudServer() {
+            if (!currentUser) return;
+            updateCloudStatus("syncing", "Menyimpan ke Server...");
+
+            try {
+                const userDocRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'settings', 'user_data');
+                await setDoc(userDocRef, {
+                    attendance: attendanceData,
+                    presetConfig: presetConfig,
+                    userProfile: userProfile,
+                    themeClass: currentThemeClass,
+                    themeName: currentThemeName,
+                    reminderConfig: reminderConfig,
+                    updatedAt: new Date().toISOString()
+                }, { merge: true });
+
+                updateCloudStatus("online", "Tersimpan di Server");
+            } catch (err) {
+                console.error("Error saving data to server:", err);
+                updateCloudStatus("error", "Gagal Simpan Server");
+            }
+        }
+
+        function updateCloudStatus(state, text) {
+            const badge = document.getElementById('cloudStatusBadge');
+            const icon = document.getElementById('cloudStatusIcon');
+            const textEl = document.getElementById('cloudStatusText');
+
+            if (!badge || !icon || !textEl) return;
+            badge.classList.remove('hidden');
+
+            if (state === "syncing") {
+                badge.className = "hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-semibold";
+                icon.className = "fa-solid fa-rotate spin text-[11px]";
+            } else if (state === "online") {
+                badge.className = "hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-semibold";
+                icon.className = "fa-solid fa-cloud-check text-[11px]";
+            } else {
+                badge.className = "hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 text-xs font-semibold";
+                icon.className = "fa-solid fa-cloud-xmark text-[11px]";
+            }
+
+            textEl.textContent = text;
+        }
+
+        // Initialize Calendar Core Logic
+        function initApp() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const todayFormatted = `${year}-${month}-${day}`;
+
+            if (todayFormatted >= START_DATE_STR && todayFormatted <= END_DATE_STR) {
+                simulatedTodayStr = todayFormatted;
+            } else {
+                simulatedTodayStr = START_DATE_STR;
+            }
+
+            generateDateList();
+            updateGreetingAndProfileUI();
+            syncPresetUI();
+            updateTodayHeader();
+            renderCalendar();
+            updateStatistics();
+            renderAttendanceChart();
+            syncNotificationUI();
+            scheduleReminderCheck();
+
+            initFirebase();
+        }
+
+        function generateDateList() {
+            datesList = [];
+            const curr = new Date(2026, 9, 5); // 5 Oct 2026
+            const end = new Date(2026, 11, 31); // 31 Dec 2026
+
+            while (curr <= end) {
+                const year = curr.getFullYear();
+                const month = curr.getMonth();
+                const dateNum = curr.getDate();
+                const dayOfWeek = curr.getDay();
+
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dateNum).padStart(2, '0')}`;
+                
+                datesList.push({
+                    dateStr: dateStr,
+                    year: year,
+                    month: month,
+                    dateNum: dateNum,
+                    dayOfWeek: dayOfWeek,
+                    fullObj: new Date(curr)
+                });
+
+                curr.setDate(curr.getDate() + 1);
+            }
+        }
+
+        // Theme Switcher Logic
+        function toggleThemeDropdown() {
+            document.getElementById('themeMenu').classList.toggle('hidden');
+        }
+
+        function changeTheme(themeClass, themeName) {
+            currentThemeClass = themeClass;
+            currentThemeName = themeName;
+            applyTheme(themeClass, themeName);
+            saveDataToCloudServer();
+            document.getElementById('themeMenu').classList.add('hidden');
+            showToast(`Tema diubah ke ${themeName}`, "info");
+        }
+
+        function applyTheme(themeClass, themeName) {
+            document.body.className = `themed-body ${themeClass} font-sans min-h-screen flex flex-col antialiased transition-colors duration-300`;
+            document.getElementById('currentThemeLabel').textContent = themeName;
+            
+            if (themeClass === 'theme-midnight' || themeClass === 'theme-emerald') {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+
+        // Profile UI Updates
+        function updateGreetingAndProfileUI() {
+            document.getElementById('userDisplayName').textContent = userProfile.name;
+            document.getElementById('navProfileName').textContent = userProfile.name;
+            const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${userProfile.seed}`;
+            document.getElementById('navProfileAvatar').src = avatarUrl;
+            document.getElementById('greetingQuote').textContent = `"${userProfile.bio || 'Semua data absen Anda otomatis tersimpan aman di server cloud.'}"`;
+
+            const hour = new Date().getHours();
+            let greeting = "Selamat Pagi";
+            let iconClass = "fa-solid fa-sun text-amber-400";
+
+            if (hour >= 11 && hour < 15) {
+                greeting = "Selamat Siang";
+                iconClass = "fa-solid fa-sun text-amber-500";
+            } else if (hour >= 15 && hour < 18) {
+                greeting = "Selamat Sore";
+                iconClass = "fa-solid fa-cloud-sun text-orange-400";
+            } else if (hour >= 18 || hour < 4) {
+                greeting = "Selamat Malam";
+                iconClass = "fa-solid fa-moon text-indigo-400";
+            }
+
+            document.getElementById('greetingText').textContent = greeting + "!";
+            document.getElementById('greetingIcon').className = iconClass;
+        }
+
+        function openProfileModal() {
+            document.getElementById('inputProfileName').value = userProfile.name;
+            document.getElementById('inputProfileRole').value = userProfile.role || "";
+            document.getElementById('inputProfileBio').value = userProfile.bio || "";
+            document.getElementById('profileModal').classList.remove('hidden');
+        }
+
+        function closeProfileModal() {
+            document.getElementById('profileModal').classList.add('hidden');
+        }
+
+        function selectAvatar(seed) {
+            userProfile.seed = seed;
+            document.querySelectorAll('.avatar-opt').forEach(btn => {
+                btn.classList.replace('border-indigo-600', 'border-transparent');
+            });
+            document.querySelectorAll('.avatar-opt').forEach(btn => { const img = btn.querySelector('img'); if (img && img.src.includes(`seed=${encodeURIComponent(seed)}`)) btn.classList.replace('border-transparent', 'border-indigo-600'); });
+        }
+
+        function saveProfileData() {
+            const name = document.getElementById('inputProfileName').value.trim();
+            const role = document.getElementById('inputProfileRole').value.trim();
+            const bio = document.getElementById('inputProfileBio').value.trim();
+
+            if (name) userProfile.name = name;
+            userProfile.role = role;
+            userProfile.bio = bio;
+
+            saveDataToCloudServer();
+            updateGreetingAndProfileUI();
+            closeProfileModal();
+            showToast("Profil tersimpan ke server!", "success");
+        }
+
+        // Preset UI Operations
+        function syncPresetUI() {
+            document.getElementById('presetToggle').checked = presetConfig.enabled;
+            document.getElementById('presetStatus').value = presetConfig.status;
+            document.getElementById('presetHealth').value = presetConfig.health;
+        }
+
+        function togglePresetMode() {
+            presetConfig.enabled = document.getElementById('presetToggle').checked;
+            savePresetConfig();
+            showToast(presetConfig.enabled ? `Auto-Preset AKTIF (${presetConfig.status})` : "Auto-Preset NONAKTIF", "info");
+        }
+
+        function savePresetConfig() {
+            presetConfig.enabled = document.getElementById('presetToggle').checked;
+            presetConfig.status = document.getElementById('presetStatus').value;
+            presetConfig.health = document.getElementById('presetHealth').value;
+            saveDataToCloudServer();
+            updateTodayHeader();
+        }
+
+        function updateTodayHeader() {
+            const todayItem = datesList.find(d => d.dateStr === simulatedTodayStr) || datesList[0];
+            const d = todayItem.fullObj;
+            const formatted = `${dayNamesIndo[d.getDay()]}, ${d.getDate()} ${monthNamesIndo[d.getMonth()]} ${d.getFullYear()}`;
+            
+            document.getElementById('todayFormatted').textContent = formatted;
+
+            const record = attendanceData[simulatedTodayStr];
+            const btnText = document.getElementById('btnAbsenText');
+            const statusSubtitle = document.getElementById('todayStatusSubtitle');
+
+            if (record) {
+                statusSubtitle.innerHTML = `Status Hari Ini: <span class="font-bold text-emerald-400">${record.status} (${record.health})</span>`;
+                btnText.textContent = "Sudah Absen (Klik Untuk Ubah)";
+            } else {
+                statusSubtitle.innerHTML = `Status Hari Ini: <span class="font-bold text-amber-400">Belum Absen</span>`;
+                btnText.textContent = presetConfig.enabled ? `Absen Instan (${presetConfig.status})` : "Absen Sekarang";
+            }
+        }
+
+        function updateStatistics() {
+            let counts = { MASUK: 0, LIBUR: 0, SAKIT: 0, IZIN: 0, SEHAT: 0, BELUM: 0 };
+
+            datesList.forEach(item => {
+                const rec = attendanceData[item.dateStr];
+                if (rec && rec.status) {
+                    counts[rec.status] = (counts[rec.status] || 0) + 1;
+                } else {
+                    counts.BELUM++;
+                }
+            });
+
+            document.getElementById('statMasuk').textContent = counts.MASUK;
+            document.getElementById('statLibur').textContent = counts.LIBUR;
+            document.getElementById('statSakit').textContent = counts.SAKIT;
+            document.getElementById('statIzin').textContent = counts.IZIN;
+            document.getElementById('statSehat').textContent = counts.SEHAT;
+            document.getElementById('statBelum').textContent = counts.BELUM;
+        }
+
+        function handleAbsenClick(targetDateStr = null) {
+            const dateStr = targetDateStr || simulatedTodayStr;
+
+            if (presetConfig.enabled && !attendanceData[dateStr]) {
+                attendanceData[dateStr] = {
+                    status: presetConfig.status,
+                    health: presetConfig.health,
+                    notes: "Absen Otomatis via Auto-Preset"
+                };
+                saveDataToCloudServer();
+                updateTodayHeader();
+                renderCalendar();
+                updateStatistics();
+                renderAttendanceChart();
+                showToast(`Absen ${presetConfig.status} tersimpan di server!`, "success");
+            } else {
+                openAbsenModal(dateStr);
+            }
+        }
+
+        let activeModalDateStr = null;
+
+        function openAbsenModal(dateStr) {
+            activeModalDateStr = dateStr;
+            const item = datesList.find(d => d.dateStr === dateStr);
+            if (!item) return;
+
+            const d = item.fullObj;
+            document.getElementById('modalDateTitle').textContent = `${dayNamesIndo[d.getDay()]}, ${d.getDate()} ${monthNamesIndo[d.getMonth()]} ${d.getFullYear()}`;
+
+            const existing = attendanceData[dateStr];
+            if (existing) {
+                const radios = document.getElementsByName('modalStatus');
+                radios.forEach(r => { if (r.value === existing.status) r.checked = true; });
+                document.getElementById('modalHealthCondition').value = existing.health || "Sehat Fit";
+                document.getElementById('modalHealthNotes').value = existing.notes || "";
+            } else {
+                const radios = document.getElementsByName('modalStatus');
+                radios[0].checked = true;
+                document.getElementById('modalHealthCondition').value = presetConfig.health || "Sehat Fit";
+                document.getElementById('modalHealthNotes').value = "";
+            }
+
+            document.getElementById('absenModal').classList.remove('hidden');
+        }
+
+        function closeAbsenModal() {
+            document.getElementById('absenModal').classList.add('hidden');
+            activeModalDateStr = null;
+        }
+
+        function submitModalAbsen() {
+            if (!activeModalDateStr) return;
+
+            const radios = document.getElementsByName('modalStatus');
+            let selectedStatus = "MASUK";
+            for (let r of radios) {
+                if (r.checked) {
+                    selectedStatus = r.value;
+                    break;
+                }
+            }
+
+            const health = document.getElementById('modalHealthCondition').value;
+            const notes = document.getElementById('modalHealthNotes').value.trim();
+
+            attendanceData[activeModalDateStr] = {
+                status: selectedStatus,
+                health: health,
+                notes: notes
+            };
+
+            saveDataToCloudServer();
+            closeAbsenModal();
+
+            updateTodayHeader();
+            renderCalendar();
+            updateStatistics();
+            renderAttendanceChart();
+
+            showToast(`Absen (${selectedStatus}) berhasil dikirim ke server!`, "success");
+        }
+
+        function renderAttendanceChart() {
+            const canvas=document.getElementById('attendanceChart'); if(!canvas) return;
+            const ctx=canvas.getContext('2d'), rect=canvas.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
+            const w=Math.max(300,rect.width||600), h=Math.max(220,rect.height||260); canvas.width=w*dpr; canvas.height=h*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,w,h);
+            const labels=['Masuk','Sehat','Izin','Sakit','Libur'], vals=labels.map(k=>datesList.filter(x=>attendanceData[x.dateStr]?.status===k.toUpperCase()).length);
+            const pad={l:42,r:18,t:18,b:42}, max=Math.max(1,...vals), cw=w-pad.l-pad.r, ch=h-pad.t-pad.b;
+            const gc=getComputedStyle(document.body).getPropertyValue('--border-card')||'#e2e8f0', tc=getComputedStyle(document.body).getPropertyValue('--text-muted')||'#64748b', ac='#6366f1';
+            ctx.strokeStyle=gc;ctx.lineWidth=1;ctx.fillStyle=tc;ctx.font='11px Inter,sans-serif';
+            for(let i=0;i<=4;i++){let y=pad.t+ch-(ch*i/4);ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();ctx.fillText(String(Math.round(max*i/4)),6,y+4);}
+            const type=document.getElementById('chartType')?.value||'line';
+            if(type==='bar'){const bw=cw/vals.length*.55;vals.forEach((v,i)=>{const x=pad.l+cw*(i+.5)/vals.length-bw/2,bh=v/max*ch;ctx.fillStyle=ac;ctx.beginPath();ctx.roundRect(x,pad.t+ch-bh,bw,bh,7);ctx.fill();});}
+            else{const pts=vals.map((v,i)=>({x:pad.l+cw*(i/(vals.length-1||1)),y:pad.t+ch-v/max*ch}));ctx.strokeStyle=ac;ctx.lineWidth=3;ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();pts.forEach(p=>{ctx.fillStyle=ac;ctx.beginPath();ctx.arc(p.x,p.y,5,0,Math.PI*2);ctx.fill();});}
+            ctx.fillStyle=tc;ctx.textAlign='center';labels.forEach((lab,i)=>ctx.fillText(lab,pad.l+cw*(i+.5)/labels.length,h-14));ctx.textAlign='start';
+            const total=vals.reduce((a,b)=>a+b,0), rate=datesList.length?Math.round(total/datesList.length*100):0; const sum=document.getElementById('chartSummary');if(sum)sum.textContent=`${total} hari tercatat dari ${datesList.length} hari • cakupan ${rate}%`;
+        }
+        function openNotificationSettings(){syncNotificationUI();document.getElementById('notificationModal').classList.remove('hidden');}
+        function closeNotificationSettings(){document.getElementById('notificationModal').classList.add('hidden');}
+        function syncNotificationUI(){const e=document.getElementById('reminderEnabled'),t=document.getElementById('reminderTime'),b=document.getElementById('notificationBell');if(e)e.checked=!!reminderConfig.enabled;if(t)t.value=reminderConfig.time||'07:00';if(b)b.className=reminderConfig.enabled?'fa-solid fa-bell text-indigo-500':'fa-regular fa-bell text-slate-400';}
+        async function requestNotificationPermission(){if(!('Notification'in window)){showToast('Browser ini tidak mendukung notifikasi.','info');return;}try{const r=await Notification.requestPermission();showToast(r==='granted'?'Notifikasi diizinkan.':'Izin notifikasi belum diberikan.','info');}catch(e){showToast('Izin notifikasi tidak dapat diproses.','info');}}
+        function saveNotificationSettings(){reminderConfig.enabled=document.getElementById('reminderEnabled').checked;reminderConfig.time=document.getElementById('reminderTime').value||'07:00';saveDataToCloudServer();syncNotificationUI();scheduleReminderCheck();closeNotificationSettings();showToast('Pengaturan pengingat tersimpan.','success');}
+        function scheduleReminderCheck(){if(notificationTimer)clearInterval(notificationTimer);notificationTimer=setInterval(checkDailyReminder,30000);checkDailyReminder();}
+        function checkDailyReminder(){if(!reminderConfig.enabled||attendanceData[simulatedTodayStr])return;const n=new Date(),hm=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0'),key=`absenReminder_${simulatedTodayStr}_${reminderConfig.time}`;if(hm!==reminderConfig.time||localStorage.getItem(key))return;localStorage.setItem(key,'1');showToast('Pengingat: kamu belum absen hari ini.','info');if('Notification'in window&&Notification.permission==='granted')new Notification('Pengingat Absen',{body:'Kamu belum mengisi absen hari ini.'});}
+
+        function setMonthFilter(monthVal) {
+            selectedMonth = monthVal;
+            ['ALL', 9, 10, 11].forEach(m => {
+                const btn = document.getElementById(`tabMonth${m}`);
+                if (btn) {
+                    btn.className = (m === monthVal) 
+                        ? "px-3.5 py-2 rounded-lg bg-indigo-600 text-white shadow-sm font-semibold transition-all"
+                        : "px-3.5 py-2 rounded-lg opacity-80 hover:opacity-100 transition-all";
+                }
+            });
+            renderCalendar();
+        }
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendarGrid');
+            const emptyState = document.getElementById('emptyState');
+            const statusFilterVal = document.getElementById('statusFilter').value;
+
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            const filteredDates = datesList.filter(item => {
+                if (selectedMonth !== 'ALL' && item.month !== selectedMonth) return false;
+
+                const rec = attendanceData[item.dateStr];
+                if (statusFilterVal === 'BELUM' && rec) return false;
+                if (statusFilterVal !== 'ALL' && statusFilterVal !== 'BELUM') {
+                    if (!rec || rec.status !== statusFilterVal) return false;
+                }
+
+                return true;
+            });
+
+            if (filteredDates.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            filteredDates.forEach(item => {
+                const isToday = item.dateStr === simulatedTodayStr;
+                const rec = attendanceData[item.dateStr];
+
+                let cardBg = "themed-card border-slate-500/20 hover:border-indigo-500/40";
+                let statusBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-500/10 text-slate-500">Belum Absen</span>`;
+
+                if (rec) {
+                    switch (rec.status) {
+                        case 'MASUK':
+                            cardBg = "bg-emerald-500/10 border-emerald-500/30 hover:border-emerald-500/50";
+                            statusBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"><i class="fa-solid fa-briefcase"></i> Masuk</span>`;
+                            break;
+                        case 'LIBUR':
+                            cardBg = "bg-sky-500/10 border-sky-500/30 hover:border-sky-500/50";
+                            statusBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/20 text-sky-600 dark:text-sky-400"><i class="fa-solid fa-mug-hot"></i> Libur</span>`;
+                            break;
+                        case 'SAKIT':
+                            cardBg = "bg-rose-500/10 border-rose-500/30 hover:border-rose-500/50";
+                            statusBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-600 dark:text-rose-400"><i class="fa-solid fa-bed"></i> Sakit</span>`;
+                            break;
+                        case 'IZIN':
+                            cardBg = "bg-amber-500/10 border-amber-500/30 hover:border-amber-500/50";
+                            statusBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-600 dark:text-amber-400"><i class="fa-solid fa-envelope"></i> Izin</span>`;
+                            break;
+                        case 'SEHAT':
+                            cardBg = "bg-teal-500/10 border-teal-500/30 hover:border-teal-500/50";
+                            statusBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-500/20 text-teal-600 dark:text-teal-400"><i class="fa-solid fa-heart-pulse"></i> Sehat</span>`;
+                            break;
+                    }
+                } else if (isToday) {
+                    cardBg = "bg-indigo-500/10 border-indigo-500 ring-2 ring-indigo-500/30";
+                }
+
+                const dayCard = document.createElement('div');
+                dayCard.className = `p-3 rounded-2xl border transition-all duration-200 flex flex-col justify-between min-h-[110px] relative cursor-pointer hover:shadow-md hover:-translate-y-0.5 ${cardBg}`;
+                dayCard.onclick = () => handleAbsenClick(item.dateStr);
+
+                dayCard.innerHTML = `
+                    <div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-bold uppercase tracking-wider ${isToday ? 'text-indigo-500' : 'opacity-60'}">${dayNamesIndo[item.dayOfWeek]}</span>
+                            ${isToday ? '<span class="px-1.5 py-0.2 rounded-md bg-indigo-600 text-white text-[9px] font-bold">HARI INI</span>' : ''}
+                        </div>
+                        <div class="text-lg font-bold font-heading leading-tight mt-0.5">
+                            ${item.dateNum} <span class="text-xs font-normal opacity-60">${monthNamesIndo[item.month].substring(0, 3)}</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-2 space-y-1">
+                        <div>${statusBadge}</div>
+                        ${rec && rec.health ? `<div class="text-[10px] opacity-75 truncate font-medium"><i class="fa-solid fa-notes-medical text-teal-500 mr-1"></i>${rec.health}</div>` : ''}
+                    </div>
+                `;
+
+                grid.appendChild(dayCard);
+            });
+        }
+
+        function confirmResetModal() {
+            document.getElementById('resetModal').classList.remove('hidden');
+        }
+
+        function closeResetModal() {
+            document.getElementById('resetModal').classList.add('hidden');
+        }
+
+        function executeResetData() {
+            attendanceData = {};
+            saveDataToCloudServer();
+            closeResetModal();
+
+            updateTodayHeader();
+            renderCalendar();
+            updateStatistics();
+            renderAttendanceChart();
+
+            showToast("Data server berhasil dibersihkan.", "info");
+        }
+
+        function showToast(message, type = "success") {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
+
+            if (!toast) return;
+
+            toastMessage.textContent = message;
+            toastIcon.className = (type === "success") 
+                ? "fa-solid fa-circle-check text-emerald-400 text-lg" 
+                : "fa-solid fa-circle-info text-sky-400 text-lg";
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // Close dropdown when clicking outside
+        window.onclick = function(event) {
+            if (!event.target.closest('.relative')) {
+                const themeMenu = document.getElementById('themeMenu');
+                if (themeMenu && !themeMenu.classList.contains('hidden')) {
+                    themeMenu.classList.add('hidden');
+                }
+            }
+        };
+
+        window.addEventListener('resize', () => renderAttendanceChart());
+        window.addEventListener('load', initApp);
+    </script>
+<script>
+        // PWA service worker registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js', { scope: './' })
+                    .catch(err => console.warn('PWA service worker gagal didaftarkan:', err));
+            });
+        }
+    </script>
+</body>
+</html>
