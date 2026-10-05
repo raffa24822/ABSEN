@@ -97,7 +97,6 @@
             border-color: var(--border-card);
         }
     </style>
-    <link rel="manifest" href="./manifest.json">
 </head>
 <body class="themed-body theme-light font-sans min-h-screen flex flex-col antialiased transition-colors duration-300">
 
@@ -1196,14 +1195,5 @@
         window.addEventListener('resize', () => renderAttendanceChart());
         window.addEventListener('load', initApp);
     </script>
-
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function () {
-    navigator.serviceWorker.register('./service-worker.js').catch(function () {});
-  });
-}
-</script>
-
 </body>
 </html>
